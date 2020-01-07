@@ -1,0 +1,47 @@
+---
+
+- set_fact:
+    user_type: '{{ user_type|default("sftp") }}'
+
+- name: Creating SFTP home for {{ username }}
+  file: path='{{ user_home|default("/srv/sftp/"+username) + "/.ssh" }}' state=directory
+  when: user_type == 'sftp'
+
+- name: Creating SFTP user {{ username }}
+  user:
+    name: '{{ username }}'
+    comment: '{{ user_comment|default("") }}'
+    remove: yes
+    shell: /bin/false
+    state: '{{ user_state|default("present") }}'
+    group: sftp-only
+    groups: '{{ user_groups }}'
+    createhome: no
+    home: '{{ user_home|default("/srv/sftp/"+username) }}'
+  when: user_type == 'sftp'
+
+- name: Creating SSH user {{ username }}
+  user:
+    name: '{{ username }}'
+    comment: '{{ user_comment|default("") }}'
+    expires: '{{ user_expires|default(-1) }}'
+    groups: '{{ user_groups }}'
+    home: '{{ user_home|default("/home/"+username) }}'
+    password_lock: yes
+    remove: yes
+    shell: '{{ user_shell|default("/bin/bash") }}'
+    state: '{{ user_state|default("present") }}'
+  when: user_type == 'ssh'
+
+# Added password_lock to user, no need to do it via command any longer
+# command: passwd --lock {{ username }}
+
+- name: Adding ssh-key(s) to {{ username }}
+  authorized_key:
+    user: '{{ username }}'
+    #key: "{{ lookup('pipe', 'cat files/keys/{{ user_ssh_authorized_key|default(username) }}.pub files/keys/mmeissner.pub') }}"
+    key: "{{ lookup('file', 'files/keys/{{ user_ssh_key|default(username) }}.pub') }}"
+    key_options: '{{ user_ssh_key_options|default("") }}'
+    exclusive: yes
+  when: user_state is not defined or user_state != 'absent'
+
