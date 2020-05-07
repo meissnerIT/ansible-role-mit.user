@@ -25,7 +25,7 @@
     name: '{{ username }}'
     comment: '{{ user_comment|default("") }}'
     expires: '{{ user_expires|default(-1) }}'
-    groups: '{{ user_groups }}'
+    groups: '{{ user_groups|default("") }}'
     home: '{{ user_home|default("/home/"+username) }}'
     password_lock: yes
     remove: yes
