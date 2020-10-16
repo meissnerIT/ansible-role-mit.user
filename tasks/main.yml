@@ -1,7 +1,8 @@
 ---
 
-- set_fact:
-    user_type: '{{ user_type|default("sftp") }}'
+# Don't set the user_type global - doesn't work when processing multiple users
+#- set_fact:
+#    user_type: '{{ user_type|default("sftp") }}'
 
 - name: Creating SFTP home for {{ username }}
   file: path='{{ user_home|default("/srv/sftp/"+username) + "/.ssh" }}' state=directory
