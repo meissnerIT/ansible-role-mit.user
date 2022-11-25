@@ -19,6 +19,7 @@
     groups: '{{ user_groups }}'
     createhome: no
     home: '{{ user_home|default("/srv/sftp/"+username) }}'
+    password_lock: yes
   when: user_type == 'sftp'
 
 - name: Creating SSH user {{ username }}
