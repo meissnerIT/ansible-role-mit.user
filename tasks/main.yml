@@ -1,38 +1,44 @@
 ---
+- name: Setting defaults
+  ansible.builtin.set_fact:
+    create_or_remove: "{{ 'Removing' if (user_state is defined and user_state == 'absent') else 'Creating' }}"
 
-# Don't set the user_type global - doesn't work when processing multiple users
-#- set_fact:
-#    user_type: '{{ user_type|default("sftp") }}'
+- name: Setting FreeBSD defaults
+  ansible.builtin.set_fact:
+    user_password_lock: false
+  when: ansible_system == "FreeBSD"
 
 - name: Creating SFTP home for {{ username }}
-  file: path='{{ user_home|default("/srv/sftp/"+username) + "/.ssh" }}' state=directory
+  ansible.builtin.file:
+    path: "'{{ user_home|default(\"/srv/sftp/\"+username) + \"/.ssh\" }}'"
+    state: directory
   when: user_type == 'sftp'
 
-- name: Creating SFTP user {{ username }}
-  user:
-    name: '{{ username }}'
-    comment: '{{ user_comment|default("") }}'
-    remove: yes
+- name: "{{ create_or_remove }} SFTP user {{ username }}"
+  ansible.builtin.user:
+    name: "{{ username }}"
+    comment: '{{ user_comment | default("") }}'
+    remove: true
     shell: /bin/false
-    state: '{{ user_state|default("present") }}'
+    state: '{{ user_state | default("present") }}'
     group: sftp-only
-    groups: '{{ user_groups }}'
-    createhome: no
-    home: '{{ user_home|default("/srv/sftp/"+username) }}'
-    password_lock: yes
+    groups: "{{ user_groups }}"
+    createhome: false
+    home: '{{ user_home | default("/srv/sftp/" + username) }}'
+    password_lock: true
   when: user_type == 'sftp'
 
-- name: Creating SSH user {{ username }}
-  user:
-    name: '{{ username }}'
-    comment: '{{ user_comment|default("") }}'
-    expires: '{{ user_expires|default(-1) }}'
-    groups: '{{ user_groups|default("") }}'
-    home: '{{ user_home|default("/home/"+username) }}'
-    password_lock: yes
-    remove: yes
-    shell: '{{ user_shell|default("/bin/bash") }}'
-    state: '{{ user_state|default("present") }}'
+- name: "{{ create_or_remove }} SSH user {{ username }}"
+  ansible.builtin.user:
+    name: "{{ username }}"
+    comment: '{{ user_comment | default("") }}'
+    expires: "{{ user_expires | default(-1) }}"
+    groups: '{{ user_groups | default("") }}'
+    home: '{{ user_home | default("/home/" + username) }}'
+    password_lock: "{{ user_password_lock | default(True) }}"
+    remove: true # Remove home if state=absent
+    shell: '{{ user_shell | default("/bin/bash") }}'
+    state: '{{ user_state | default("present") }}'
   when: user_type == 'ssh'
 
 # Added password_lock to user, no need to do it via command any longer
@@ -40,10 +46,9 @@
 
 - name: Adding ssh-key(s) to {{ username }}
   authorized_key:
-    user: '{{ username }}'
+    user: "{{ username }}"
     #key: "{{ lookup('pipe', 'cat files/keys/{{ user_ssh_authorized_key|default(username) }}.pub files/keys/mmeissner.pub') }}"
     key: "{{ lookup('file', 'files/keys/{{ user_ssh_key|default(username) }}.pub') }}"
-    key_options: '{{ user_ssh_key_options|default("") }}'
-    exclusive: yes
+    key_options: '{{ user_ssh_key_options | default("") }}'
+    exclusive: true
   when: user_state is not defined or user_state != 'absent'
-
