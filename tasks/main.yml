@@ -10,11 +10,12 @@
 
 - name: Creating SFTP home for {{ username }}
   ansible.builtin.file:
-    path: "'{{ user_home|default(\"/srv/sftp/\"+username) + \"/.ssh\" }}'"
+    path: '''{{ user_home | default("/srv/sftp/" + username) + "/.ssh" }}'''
     state: directory
+    mode: "755"
   when: user_type == 'sftp'
 
-- name: "{{ create_or_remove }} SFTP user {{ username }}"
+- name: "{{ create_or_remove }} SFTP user {{ username }}" # noqa: name[template]
   ansible.builtin.user:
     name: "{{ username }}"
     comment: '{{ user_comment | default("") }}'
@@ -28,7 +29,12 @@
     password_lock: true
   when: user_type == 'sftp'
 
-- name: "{{ create_or_remove }} SSH user {{ username }}"
+- name: Check if {{ user_shell }} exists # noqa: name[template]
+  ansible.builtin.command: ls {{ user_shell }}
+  changed_when: false
+  when: user_type == 'ssh' and user_shell
+
+- name: "{{ create_or_remove }} SSH user {{ username }}" # noqa: name[template]
   ansible.builtin.user:
     name: "{{ username }}"
     comment: '{{ user_comment | default("") }}'
@@ -47,7 +53,7 @@
 - name: Adding ssh-key(s) to {{ username }}
   authorized_key:
     user: "{{ username }}"
-    #key: "{{ lookup('pipe', 'cat files/keys/{{ user_ssh_authorized_key|default(username) }}.pub files/keys/mmeissner.pub') }}"
+    # key: "{{ lookup('pipe', 'cat files/keys/{{ user_ssh_authorized_key|default(username) }}.pub files/keys/mmeissner.pub') }}"
     key: "{{ lookup('file', 'files/keys/{{ user_ssh_key|default(username) }}.pub') }}"
     key_options: '{{ user_ssh_key_options | default("") }}'
     exclusive: true
