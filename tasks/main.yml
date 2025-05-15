@@ -47,6 +47,17 @@
     state: '{{ user_state | default("present") }}'
   when: user_type == 'ssh'
 
+- name: Processing system user {{ username }}
+  user:
+    name: '{{ username }}'
+    home: '{{ user_home }}'
+    create_home: no # avoid skell files
+    shell: /bin/false
+    system: yes
+    remove: yes
+    state: '{{ user_state|default("present") }}'
+  when: user_type == 'system'
+
 # Added password_lock to user, no need to do it via command any longer
 # command: passwd --lock {{ username }}
 
@@ -57,4 +68,4 @@
     key: "{{ lookup('file', 'files/keys/{{ user_ssh_key|default(username) }}.pub') }}"
     key_options: '{{ user_ssh_key_options | default("") }}'
     exclusive: true
-  when: user_state is not defined or user_state != 'absent'
+  when: (user_state is not defined or user_state != 'absent') and (user_ssh_key is not defined or user_ssh_key != 'absent') and user_type != 'system'
