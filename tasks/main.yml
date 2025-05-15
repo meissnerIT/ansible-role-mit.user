@@ -32,7 +32,7 @@
 - name: Check if {{ user_shell }} exists # noqa: name[template]
   ansible.builtin.command: ls {{ user_shell }}
   changed_when: false
-  when: user_type == 'ssh' and user_shell
+  when: user_type == 'ssh' and user_shell is defined
 
 - name: "{{ create_or_remove }} SSH user {{ username }}" # noqa: name[template]
   ansible.builtin.user:
@@ -48,14 +48,14 @@
   when: user_type == 'ssh'
 
 - name: Processing system user {{ username }}
-  user:
-    name: '{{ username }}'
-    home: '{{ user_home }}'
-    create_home: no # avoid skell files
+  ansible.builtin.user:
+    name: "{{ username }}"
+    home: "{{ user_home }}"
+    create_home: false # avoid skell files
     shell: /bin/false
-    system: yes
-    remove: yes
-    state: '{{ user_state|default("present") }}'
+    system: true
+    remove: true
+    state: '{{ user_state | default("present") }}'
   when: user_type == 'system'
 
 # Added password_lock to user, no need to do it via command any longer
@@ -67,5 +67,5 @@
     # key: "{{ lookup('pipe', 'cat files/keys/{{ user_ssh_authorized_key|default(username) }}.pub files/keys/mmeissner.pub') }}"
     key: "{{ lookup('file', 'files/keys/{{ user_ssh_key|default(username) }}.pub') }}"
     key_options: '{{ user_ssh_key_options | default("") }}'
-    exclusive: true
+    exclusive: "{{ user_ssh_key_exclusive | default(True) }}"
   when: (user_state is not defined or user_state != 'absent') and (user_ssh_key is not defined or user_ssh_key != 'absent') and user_type != 'system'
