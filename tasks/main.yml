@@ -67,5 +67,5 @@
     # key: "{{ lookup('pipe', 'cat files/keys/{{ user_ssh_authorized_key|default(username) }}.pub files/keys/mmeissner.pub') }}"
     key: "{{ lookup('file', 'files/keys/{{ user_ssh_key|default(username) }}.pub') }}"
     key_options: '{{ user_ssh_key_options | default("") }}'
-    exclusive: "{{ user_ssh_key_exclusive | default(True) }}"
+    exclusive: "{{ user_ssh_key_exclusive | default(False) }}"
   when: (user_state is not defined or user_state != 'absent') and (user_ssh_key is not defined or user_ssh_key != 'absent') and user_type != 'system'
