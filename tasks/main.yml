@@ -40,6 +40,11 @@
   changed_when: false
   when: user_create_zfs_dataset|default(false)
 
+- name: Check if {{ user_shell }} exists # noqa: name[template]
+  ansible.builtin.command: ls {{ user_shell }}
+  changed_when: false
+  when: user_type == 'ssh' and user_shell is defined
+
 - name: "{{ create_or_remove }} SSH user {{ username }}" # noqa: name[template]
   ansible.builtin.user:
     name: "{{ username }}"
@@ -73,5 +78,5 @@
     # key: "{{ lookup('pipe', 'cat files/keys/{{ user_ssh_authorized_key|default(username) }}.pub files/keys/mmeissner.pub') }}"
     key: "{{ lookup('file', 'files/keys/{{ user_ssh_key|default(username) }}.pub') }}"
     key_options: '{{ user_ssh_key_options | default("") }}'
-    exclusive: true
+    exclusive: "{{ user_ssh_key_exclusive | default(False) }}"
   when: (user_state is not defined or user_state != 'absent') and (user_ssh_key is not defined or user_ssh_key != 'absent') and user_type != 'system'
