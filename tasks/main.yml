@@ -3,16 +3,20 @@
   ansible.builtin.set_fact:
     create_or_remove: "{{ 'Removing' if (user_state is defined and user_state == 'absent') else 'Creating' }}"
 
+- name: Set is_jail
+  ansible.builtin.set_fact:
+    is_jail: "{{ 'jails' in ansible_virtualization_tech_guest }}"
+
 - name: Setting FreeBSD defaults
   ansible.builtin.set_fact:
     user_password_lock: false
-    user_create_zfs_dataset: true
+    user_create_zfs_dataset: "{{ user_create_zfs_dataset | default(not is_jail) }}"
     zfs_dataset_home: zroot/home
   when: ansible_system == "FreeBSD"
 
 - name: Creating SFTP home for {{ username }}
   ansible.builtin.file:
-    path: "'{{ user_home | default(\"/srv/sftp/\" + username) + \"/.ssh\" }}'"
+    path: '''{{ user_home | default("/srv/sftp/" + username) + "/.ssh" }}'''
     state: directory
     mode: "755"
   when: user_type == 'sftp'
