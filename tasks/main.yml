@@ -2,10 +2,8 @@
 - name: Setting defaults
   ansible.builtin.set_fact:
     create_or_remove: "{{ 'Removing' if (user_state is defined and user_state == 'absent') else 'Creating' }}"
-
-- name: Set is_jail
-  ansible.builtin.set_fact:
     is_jail: "{{ 'jails' in ansible_virtualization_tech_guest }}"
+    user_shell: "{{ user_shell | default('bash') }}"
 
 - name: Setting FreeBSD defaults
   ansible.builtin.set_fact:
@@ -13,6 +11,21 @@
     user_create_zfs_dataset: "{{ user_create_zfs_dataset | default(not is_jail) }}"
     zfs_dataset_home: zroot/home
   when: ansible_system == "FreeBSD"
+
+- name: Setting full shell path (1/2)
+  # which also works with full path like /bin/sh
+  ansible.builtin.command: which {{ user_shell }}
+  register: user_shell_full_result
+  changed_when: false
+  when: user_type == 'ssh'
+- name: Setting full shell path (2/2)
+  ansible.builtin.set_fact:
+    user_shell: "{{ user_shell_full_result.stdout }}"
+  when: user_type == 'ssh'
+# - name: Show user_shell
+#   ansible.builtin.debug:
+#     msg: "{{ user_shell }}"
+#   when: user_type == 'ssh'
 
 - name: Creating SFTP home for {{ username }}
   ansible.builtin.file:
@@ -37,13 +50,10 @@
 
 - name: Create ZFS dataset
   ansible.builtin.command: zfs create {{ zfs_dataset_home }}/{{ username }}
+  args:
+    creates: /home/{{ username }}
   changed_when: false
   when: user_create_zfs_dataset|default(false)
-
-- name: Check if {{ user_shell }} exists # noqa: name[template]
-  ansible.builtin.command: ls {{ user_shell }}
-  changed_when: false
-  when: user_type == 'ssh' and user_shell is defined
 
 - name: "{{ create_or_remove }} SSH user {{ username }}" # noqa: name[template]
   ansible.builtin.user:
@@ -54,7 +64,7 @@
     home: '{{ user_home | default("/home/" + username) }}'
     password_lock: "{{ user_password_lock | default(True) }}"
     remove: true # Remove home if state=absent
-    shell: '{{ user_shell | default("/bin/bash") }}'
+    shell: '{{ user_shell }}'
     state: '{{ user_state | default("present") }}'
   when: user_type == 'ssh'
 
