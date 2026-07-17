@@ -4,6 +4,7 @@
     create_or_remove: "{{ 'Removing' if (user_state is defined and user_state == 'absent') else 'Creating' }}"
     is_jail: "{{ 'jails' in ansible_virtualization_tech_guest }}"
     user_shell: "{{ user_shell | default('bash') }}"
+    zfs_dataset_home: tank/home
 
 - name: Setting FreeBSD defaults
   ansible.builtin.set_fact:
