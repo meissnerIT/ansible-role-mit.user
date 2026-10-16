@@ -54,7 +54,7 @@
   args:
     creates: /home/{{ username }}
   changed_when: false
-  when: user_create_zfs_dataset|default(false)
+  when: user_type == 'ssh' and user_create_zfs_dataset | default(false)
 
 - name: "{{ create_or_remove }} SSH user {{ username }}" # noqa: name[template]
   ansible.builtin.user:
